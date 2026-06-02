@@ -1,5 +1,5 @@
 import argparse
-from sched import scheduler
+
 
 import torch
 from pathlib import Path
@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).parent
 
 
 def parse_arguments() :
-    parser = argparse.ArgumentParser(description="Utility functions for the project.")
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--content_dir", type=str, default=str(BASE_DIR / "content_data"),
                         help="Location of the content directory. This is where the input data is stored.")
@@ -73,24 +73,23 @@ def parse_arguments() :
     return parser.parse_args()
 
 
-def main() :
+def main():
     args = parse_arguments()
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #save_dir = Path(args.experiment) / args.experiment
     save_dir = Path('experiment') / args.experiment
     save_dir.mkdir(exist_ok=True, parents=True)
 
     #Save argument values
-    with open(save_dir / "args.txt", "w") as args_file:
-        for arg, value in vars(args).items():
-            args_file.write(f"{arg}: {value}\n")
-
+    with open(save_dir / 'args.txt', 'w') as args_file:
+        for key, value in vars(args).items():
+            args_file.write(f'{key}: {value}\n')
+    
     content_transform = get_transform(args.content_size, args.crop, args.final_size)
     style_transform = get_transform(args.style_size, args.crop, args.final_size)
-
-    content_dataset = ImageFolderDataset(args.content_dir, transform=content_transform)
-    style_dataset = ImageFolderDataset(args.style_dir, transform=style_transform)
+    
+    content_dataset = ImageFolderDataset(args.content_dir, content_transform)
+    style_dataset = ImageFolderDataset(args.style_dir, style_transform)
 
     content_dataloader = DataLoader(content_dataset,
                                     batch_size=args.batch_size,
@@ -173,9 +172,9 @@ def main() :
             progress_bar.set_description(f'Loss:{loss.item():4f}, Content Loss: {loss_c.item():4f}, Style Loss: {loss_s.item():4f}')
 
             running_loss += loss.item()
-            running_closs += loss.item()
-            running_sloss += loss.item()
-
+            running_closs += loss_c.item()
+            running_sloss += loss_s.item()
+        
         scheduler.step()
         running_loss /= len(content_dataloader)
         running_closs /= len(content_dataloader)
